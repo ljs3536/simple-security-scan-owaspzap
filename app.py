@@ -123,7 +123,11 @@ async def run_sast(file: UploadFile = File(...)):
 # --- 3. DAST (동적 분석) 처리 라우터 ---
 @app.post("/dast", response_class=HTMLResponse)
 async def run_dast(url: str = Form(...)):
-    zap = ZAPv2(proxies={'http': 'http://127.0.0.1:8080', 'https': 'http://127.0.0.1:8080'})
+    # 수정 전   로컬 환경
+    # zap = ZAPv2(proxies={'http': 'http://127.0.0.1:8080', 'https': 'http://127.0.0.1:8080'})
+
+    # 수정 후   docker환경
+    zap = ZAPv2(proxies={'http': 'http://zap:8080', 'https': 'http://zap:8080'})
     
     print(f"[{url}] 스파이더링 시작...")
     scan_id = zap.spider.scan(url)
