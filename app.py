@@ -2,15 +2,16 @@ import os
 import subprocess
 import time
 import json
-from fastapi import FastAPI, Form, File, UploadFile
+from fastapi import FastAPI, Form, File, UploadFile, Response
 from fastapi.responses import HTMLResponse
 from zapv2 import ZAPv2
 # zaproxy/zap-stable:latest images 필요
 # docker 에서 OWASP ZAP 실행 명령어 
-# docker run -p 8080:8080 -d -e ZAP_JAVA_OPTS="-Xmx2g" zaproxy/zap-stable zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true -config api.addrs.addr.name=. * -config api.addrs.addr.regex=true
+# docker run -p 8000:8000 -d -e ZAP_JAVA_OPTS="-Xmx2g" zaproxy/zap-stable zap.sh -daemon -host 0.0.0.0 -port 8000 -config api.disablekey=true -config api.addrs.addr.name=. * -config api.addrs.addr.regex=true
 # 
 # localhost:8070 -> host.docker.internal:8070
 #
+# uvicorn app:app --reload --port 9090
 app = FastAPI(title="나만의 취약점 점검 포털")
 
 # --- 1. 메인 웹 화면 (HTML 입력 폼) ---
@@ -124,10 +125,10 @@ async def run_sast(file: UploadFile = File(...)):
 @app.post("/dast", response_class=HTMLResponse)
 async def run_dast(url: str = Form(...)):
     # 수정 전   로컬 환경
-    # zap = ZAPv2(proxies={'http': 'http://127.0.0.1:8080', 'https': 'http://127.0.0.1:8080'})
+    zap = ZAPv2(proxies={'http': 'http://127.0.0.1:8000', 'https': 'http://127.0.0.1:8000'})
 
     # 수정 후   docker환경
-    zap = ZAPv2(proxies={'http': 'http://zap:8080', 'https': 'http://zap:8080'})
+    #zap = ZAPv2(proxies={'http': 'http://zap:8000', 'https': 'http://zap:8000'})
     
     print(f"[{url}] 스파이더링 시작...")
     scan_id = zap.spider.scan(url)
@@ -150,4 +151,12 @@ async def run_dast(url: str = Form(...)):
         
     print(f"[{url}] 점검 완료! HTML 리포트 생성 중...")
     report_html = zap.core.htmlreport()
-    return HTMLResponse(content=report_html)
+    # 다운로드용 파일명 생성 (예: zap_report_16780000.html)
+    filename = f"zap_report_{int(time.time())}.html"
+    
+    # 브라우저에 띄우지 않고 파일로 다운로드하도록 헤더 설정
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"'
+    }
+    
+    return Response(content=report_html, media_type="text/html", headers=headers)

@@ -6,12 +6,12 @@ services:
     image: zaproxy/zap-stable
     command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
     ports:
-      - "8080:8080"
+      - "8000:8000"
 
   # 2. 우리가 만든 FastAPI 웹 포털 컨테이너
   web:
     build: .
     ports:
-      - "8000:8000"
+      - "9090:9090"
     depends_on:
       - zap # ZAP이 먼저 켜진 후에 웹을 켭니다.
